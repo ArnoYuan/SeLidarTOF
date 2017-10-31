@@ -12,55 +12,55 @@ namespace NS_Selidar
 #define DEFAULT_TIMEOUT 2000
 #define MAX_SCAN_NODES 2048
   
+#define _M_PI  (3.1415927)
+#define I_RAD ((_M_PI)/180.0)
+#define DEG2RAD(x) ((x)*_M_PI/180)
+
+  struct LaserDataNode{
+	  unsigned short distance;
+	  unsigned short angle;
+  };
+  struct LidarConstant
+  {
+	double angle_min;
+	double angle_max;
+	double angle_increment;
+	double range_min;
+	double range_max;
+	double kDistance;
+  };
+
   class SelidarDriver
   {
+  private:
+	unsigned char *recv_buf;
+	unsigned char *buf_head;
+	unsigned char *buf_rear;
+	unsigned char crc(unsigned char *buf);
+
   public:
     SelidarDriver ();
     virtual
     ~SelidarDriver ();
+    LidarConstant ldConst;
 
   public:
+    bool init(int align_cnt);
+    bool
+    decode(LaserDataNode *node, unsigned char *buf);
     int
     connect (const char * port_path, unsigned int baudrate, unsigned int flag);
     void
     disconnect ();
     bool
     isConnected ();
+    int
+    stop ();
 
     int
-    reset (unsigned int timeout = DEFAULT_TIMEOUT);
+    startScan ();
     int
-    stop (unsigned int timeout = DEFAULT_TIMEOUT);
-
-    int
-    getHealth (SelidarHealth &health_info, unsigned int timeout =
-    DEFAULT_TIMEOUT);
-    int
-    getDeviceInfo (SelidarInfo &info, unsigned int timeout =
-    DEFAULT_TIMEOUT);
-
-    int
-    startScan (unsigned int timeout = DEFAULT_TIMEOUT);
-
-    int
-    grabScanData (SelidarMeasurementNode * nodebuffer, size_t & count,
-                  unsigned int timeout = DEFAULT_TIMEOUT);
-
-  protected:
-    int
-    sendCommand (unsigned char cmd);
-    void
-    disableDataGrabbing ();
-    int
-    waitResponseHeader (SelidarPacketHead* header, unsigned int timeout =
-    DEFAULT_TIMEOUT);
-
-    int
-    waitScanData (unsigned short& angle_range, SelidarMeasurementNode* nodes,
-                  size_t& node_count, unsigned int timeout = DEFAULT_TIMEOUT);
-
-    int
-    cacheScanData ();
+	getOnePoint(LaserDataNode *ldn);
 
     bool connected;
     bool scanning;
@@ -68,11 +68,6 @@ namespace NS_Selidar
     boost::mutex rxtx_lock;
     NS_NaviCommon::Condition data_cond;
     Serial* rxtx;
-
-    SelidarMeasurementNode cached_scan_node_buf[2048];
-    size_t cached_scan_node_count;
-
-    boost::thread cache_thread;
   };
 
 }

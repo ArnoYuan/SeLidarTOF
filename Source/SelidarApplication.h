@@ -21,8 +21,6 @@
 #include <iostream>
 #include <string>
 
-//#define DUPLEX_MODE
-
 namespace NS_Selidar
 {
   class SelidarApplication: public Application
@@ -35,6 +33,7 @@ namespace NS_Selidar
     int serial_baudrate;
     std::string frame_id;
     int scan_timeout;
+    int align_number;
     bool inverted;
 
     SelidarDriver drv;
@@ -48,27 +47,14 @@ namespace NS_Selidar
     NS_DataSet::Publisher<NS_DataType::LaserScan>* publisher;
 
   private:
-    
-#ifdef DUPLEX_MODE
-    bool
-    checkSelidarHealth (SelidarDriver * drv);
-    bool
-    checkSelidarInfo (SelidarDriver * drv);
-    bool
-    startScanService (NS_ServiceType::RequestBase* request,
-        NS_ServiceType::ResponseBase* response);
-    bool
-    stopScanService (NS_ServiceType::RequestBase* request,
-        NS_ServiceType::ResponseBase* response);
-#endif
-    
     void
     loadParameters ();
 
-    void
-    publishScan (SelidarMeasurementNode *nodes, size_t node_count,
-                 NS_NaviCommon::Time start, double scan_time, float angle_min,
-                 float angle_max);
+    int
+    publishScanData(
+    		LidarConstant ldConst, NS_NaviCommon::Time start_scan_time,
+			double scan_duration, LaserDataNode *node, int actual_cnt,
+			int align_cnt);
     void
     scanLoop ();
 

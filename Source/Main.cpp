@@ -18,11 +18,11 @@ main (int argc, char* argv[])
   {
 	return -1;
   }
-  
+  //app.registerSignal();
   app.run ();
   
   app.pending ();
-  
+
   return 0;
 }
 

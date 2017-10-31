@@ -12,11 +12,12 @@
 #include <Time/Utils.h>
 #include <Parameter/Parameter.h>
 
+using std::cin;
+using std::cout;
+using std::endl;
+
 namespace NS_Selidar
 {
-  
-#define DEG2RAD(x) ((x)*M_PI/180.)
-#define RAD2DEG(x) ((x)*180./M_PI)
   
 #ifndef _countof
 #define _countof(_Array) (sizeof(_Array) / sizeof(_Array[0]))
@@ -24,8 +25,9 @@ namespace NS_Selidar
   
   SelidarApplication::SelidarApplication ()
   {
-    publisher = new NS_DataSet::Publisher<NS_DataType::LaserScan> ("LASER_SCAN");
-    serial_baudrate = 115200;
+    //publisher = new NS_DataSet::Publisher<NS_DataType::LaserScan> ("LASER_SCAN");
+    //serial_baudrate = 115200;
+    serial_baudrate = 230400;
     frame_id = "laser_frame";
     scan_count = 0;
     scan_timeout = 3;
@@ -35,7 +37,7 @@ namespace NS_Selidar
   SelidarApplication::~SelidarApplication ()
   {
     scan_count = 0;
-    delete publisher;
+    //delete publisher;
   }
   
   void
@@ -44,9 +46,10 @@ namespace NS_Selidar
 	NS_NaviCommon::Parameter parameter;
     parameter.loadConfigurationFile ("selidar.xml");
     serial_port = parameter.getParameter ("serial_port", "/dev/ttyUSB0");
-    serial_baudrate = parameter.getParameter ("serial_baudrate", 115200);
+    //serial_baudrate = parameter.getParameter ("serial_baudrate", 115200);
+    serial_baudrate = parameter.getParameter("serial_baudrate", 230400);
     frame_id = parameter.getParameter ("frame_id", "laser_frame");
-
+    align_number = parameter.getParameter("align_number", 360);
     if (parameter.getParameter ("inverted", 0) == 1)
     {
       inverted = true;
@@ -56,321 +59,129 @@ namespace NS_Selidar
       inverted = false;
     }
   }
-  
-#ifdef DUPLEX_MODE
-  bool
-  SelidarApplication::checkSelidarHealth (SelidarDriver * drv)
-  { 
-    int op_result;
-    SelidarHealth healthinfo;
 
-    op_result = drv->getHealth (healthinfo);
-
-    if (IS_OK(op_result))
-    { 
-      console.debug ("Selidar health status : %d, errcode: %d",
-          healthinfo.status, healthinfo.err_code);
-
-      if (healthinfo.status != StatusFine)
-      { 
-        console.warning ("Selidar's status is not fine! ");
-        return false;
-      }
-      else
-      { 
-        console.message ("Selidar's status is not fine! ");
-        return true;
-      }
-
-    }
-    else
-    { 
-      return false;
-    }
-  }
-
-  bool
-  SelidarApplication::checkSelidarInfo (SelidarDriver * drv)
-  { 
-    int op_result;
-    SelidarInfo device_info;
-
-    op_result = drv->getDeviceInfo (device_info);
-
-    if (IS_OK(op_result))
-    { 
-      console.debug ("Selidar device info :");
-      console.debug ("\t model : %d ", device_info.model);
-      console.debug ("\t hw ver : %d ", device_info.hw_id);
-      console.debug ("\t fw ver : %d.%d ", device_info.fw_major,
-          device_info.fw_minor);
-      return true;
-    }
-    else
-    { 
-      return false;
-    }
-
-  }
-
-  bool
-  SelidarApplication::stopScanService (NS_ServiceType::RequestBase* request,
-      NS_ServiceType::ResponseBase* response)
-  { 
-    if (!drv.isConnected ())
-    return false;
-
-    drv.stop ();
-
-    return true;
-  }
-
-  bool
-  SelidarApplication::startScanService (NS_ServiceType::RequestBase* request,
-      NS_ServiceType::ResponseBase* response)
-  { 
-    if (!drv.isConnected ())
-    return false;
-
-    console.message ("Start motor");
-
-    drv.startScan ();
-    return true;
-  }
-#endif
-  
-  void
-  SelidarApplication::publishScan (SelidarMeasurementNode *nodes,
-                                   size_t node_count, NS_NaviCommon::Time start,
-                                   double scan_time, float angle_min,
-                                   float angle_max)
+  int
+  SelidarApplication::publishScanData(
+    LidarConstant ldConst,
+    NS_NaviCommon::Time start_scan_time,
+	double scan_duration,
+	LaserDataNode *node,
+	int actual_cnt,
+	int align_cnt
+  )
   {
-    NS_DataType::LaserScan scan_msg;
-    
-    scan_msg.header.stamp = start;
-    scan_msg.header.frame_id = frame_id;
+	  NS_DataType::LaserScan scan_msg;
+	  scan_msg.header.frame_id = frame_id;
+	  scan_msg.header.stamp = start_scan_time;
+	  scan_msg.angle_min = ldConst.angle_min;
+	  scan_msg.angle_max = ldConst.angle_max;
+	  scan_msg.angle_increment = ldConst.angle_increment;
+	  scan_msg.scan_time = scan_duration;
+	  scan_msg.time_increment = scan_duration/align_cnt;
+	  scan_msg.range_min = ldConst.range_min;
+	  scan_msg.range_max = ldConst.range_max;
+	  scan_msg.ranges.resize(align_cnt);
+	  scan_msg.intensities.resize(align_cnt);
 
-    scan_count_lock.lock ();
-    scan_count++;
-    if (scan_count == 1)
-    {
-      console.debug ("Got first scan data!");
-      got_first_scan_cond.notify_one ();
-    }
-    scan_count_lock.unlock ();
+	  int j;
+	  int j_min = 0;
+	  int j_max = 0;
+	  int index;
+	  int offset = align_cnt/2;
+	  for(int i=0;i<align_cnt;i++)
+	  {
+		  j_min=j_max;
+		  j_max = (i+1)*actual_cnt/align_cnt-1;
+		  for(j=j_min;j<j_max;j++)
+		  {
+			  if(inverted)
+			  {
+				  index = align_cnt-offset+i;
+				  if(index>=align_cnt)
+					  index = index-align_cnt;
+			  }
+			  else
+			  {
+				  index = align_cnt-offset-i;
+				  if(index<0)
+				  {
+					  index = align_cnt +index;
+				  }
+			  }
 
-    bool reversed = (angle_max > angle_min);
-    if (reversed)
-    {
-      scan_msg.angle_min =  M_PI - angle_max;
-      scan_msg.angle_max =  M_PI - angle_min;
-    } else {
-      scan_msg.angle_min =  M_PI - angle_min;
-      scan_msg.angle_max =  M_PI - angle_max;
-    }
+			  if((node+j)->distance>1&&(node+j)->distance<3500)
+			  {
+				  scan_msg.ranges[index]=(node+j)->distance*ldConst.kDistance;
+				  scan_msg.intensities[index] = 47.0;
+				  break;
+			  }
+			  scan_msg.ranges[index]=std::numeric_limits<float>::infinity();
+			  scan_msg.intensities[index]=0.0;
+		  }
+	  }
+	  console.message("publish scan data:");
+	  console.message("start time:%f, duration:%f\r\n", scan_msg.header.stamp.toSec(),scan_msg.scan_time);
+	  unsigned short i=0;
+	  for(i=0;i<scan_msg.ranges.size();i++)
+	  {
+		  cout<<scan_msg.ranges[i]<<",";
+	  }
+	  cout<<endl;
 
-
-    scan_msg.angle_increment = (scan_msg.angle_max - scan_msg.angle_min)
-        / (double) (node_count - 1);
-    
-    scan_msg.scan_time = scan_time;
-    scan_msg.time_increment = scan_time / (double) (node_count - 1);
-    scan_msg.range_min = 0.15f;
-    scan_msg.range_max = 8.0f;
-    
-    scan_msg.intensities.resize (node_count);
-    scan_msg.ranges.resize (node_count);
-
-    bool reverse_data = (!inverted && reversed) || (inverted && !reversed);
-
-    if (!reverse_data)
-    {
-      for (size_t i = 0; i < node_count; i++)
-      {
-        float read_value = (float) nodes[i].distance_scale_1000 / 1000.0f;
-        if (read_value == 0.0)
-          scan_msg.ranges[i] = std::numeric_limits<float>::infinity();
-        else
-          scan_msg.ranges[i] = read_value;
-      }
-    }
-    else
-    {
-      for (size_t i = 0; i < node_count; i++)
-      {
-        float read_value = (float) nodes[i].distance_scale_1000 / 1000.0f;
-        if (read_value == 0.0)
-          scan_msg.ranges[node_count-1-i] = std::numeric_limits<float>::infinity();
-        else
-          scan_msg.ranges[node_count-1-i] = read_value;
-      }
-    }
-    ///////////////////////////////////////////////////////////////////////////////////////
-    /*
-    for (size_t i = 0; i < node_count; i++)
-    {
-      float read_value = (float) nodes[i].distance_scale_1000 / 1000.0f;
-      printf("-->%d    %f\n", i, read_value);
-    }
-    */
-    //////////////////////////////////////////////////////////////////////////////////////
-
-    publisher->publish (scan_msg);
+	  //publisher->publish (scan_msg);
+	  return 0;
   }
-  
+
   void
   SelidarApplication::scanLoop ()
   {
-    int op_result;
-    drv.startScan ();
-    NS_NaviCommon::Time start_scan_time;
-    NS_NaviCommon::Time end_scan_time;
+    NS_NaviCommon::Time start_scan_time=NS_NaviCommon::Time::now();
     double scan_duration;
+    drv.init(align_number);
+    LaserDataNode *ldn_array = new LaserDataNode[5760];
+    memset((void *)ldn_array, 0,5760*sizeof(LaserDataNode));
+    LaserDataNode *ldn = new LaserDataNode[256];
+    LaserDataNode *ldn_tmp;
+    int ldn_cnt = 0;
 
-    const int buffer_size = 360 * 4;
-    SelidarMeasurementNode nodes_buffer[buffer_size];
-    SelidarMeasurementNode nodes_temp[buffer_size];
-    SelidarMeasurementNode nodes_pub[buffer_size];
-    size_t buffered_nodes = 0;
-    memset (nodes_buffer, 0, sizeof(nodes_buffer));
-    memset (nodes_temp, 0, sizeof(nodes_temp));
-    memset (nodes_pub, 0, sizeof(nodes_pub));
+    int last_anl = -1;
 
+    drv.startScan ();
+    int count = 0;
     while (running)
     {
-      SelidarMeasurementNode nodes[buffer_size];
-      size_t count = _countof(nodes);
-      start_scan_time = NS_NaviCommon::Time::now ();
-      op_result = drv.grabScanData (nodes, count);
-      end_scan_time = NS_NaviCommon::Time::now ();
-      scan_duration = (end_scan_time - start_scan_time).toSec () * 1e-3;
-
-      if (op_result == Success)
+      ldn_cnt = drv.getOnePoint(ldn);
+      for(int i=0;i<ldn_cnt;i++)
       {
-        if ((buffered_nodes + count) > buffer_size)
-        {
-          console.warning ("Lidar buffer is full!");
-          buffered_nodes = 0;
-          continue;
-        }
-
-        for (int i = 0; i < count; i++)
-        {
-          nodes_buffer[buffered_nodes] = nodes[i];
-          if (nodes_buffer[buffered_nodes].angle_scale_100 >= 36000)
-            nodes_buffer[buffered_nodes].angle_scale_100 -= 36000;
-          buffered_nodes++;
-        }
-
-        int pub_nodes_count = 0;
-
-        for (int i = 0; i < buffered_nodes; i++)
-        {
-          if (i > 0 && nodes_buffer[i].angle_scale_100 < nodes_buffer[i - 1].angle_scale_100)
-          {
-            pub_nodes_count = i;
-            //copy publish nodes
-            for (int j = 0; j < pub_nodes_count; j++)
-            {
-              nodes_pub[j] = nodes_buffer[j];
-            }
-
-            //re-serialize,save temp
-            for (int j = 0; j < buffered_nodes; j++)
-            {
-              nodes_temp[j] = nodes_buffer[pub_nodes_count + j];
-            }
-
-            //save to buffer
-            buffered_nodes -= pub_nodes_count;
-            for (int j = 0; j < buffered_nodes; j++)
-            {
-              nodes_buffer[j] = nodes_temp[j];
-            }
-
-            break;
-          }
-        }
-/*
-        if (pub_nodes_count > 0)
-        {
-
-          float angle_min = (nodes_pub[0].angle_scale_100 % 36000) / 100.0f;
-          float angle_max = (nodes_pub[pub_nodes_count - 1].angle_scale_100 % 36000) / 100.0f;
-
-
-          angle_min = DEG2RAD(angle_min);
-          angle_max = DEG2RAD(angle_max);
-
-          publishScan (nodes_pub, pub_nodes_count, start_scan_time, scan_duration, angle_min, angle_max);
-        }
-*/
-        if (pub_nodes_count > 0)
-        {
-          float angle_min = DEG2RAD(0.0f);
-          float angle_max = DEG2RAD(359.0f);
-
-          const int angle_compensate_nodes_count = 360;
-          const int angle_compensate_multiple = 1;
-          int angle_compensate_offset = 0;
-          SelidarMeasurementNode angle_compensate_nodes[angle_compensate_nodes_count];
-          memset (angle_compensate_nodes, 0, angle_compensate_nodes_count * sizeof(SelidarMeasurementNode));
-
-          int i, j;
-          for (i = 0; i < pub_nodes_count; i++)
-          {
-            if (nodes_pub[i].distance_scale_1000 != 0)
-            {
-              float angle = (float) (nodes_pub[i].angle_scale_100) / 100.0f;
-              int angle_value = (int) (angle * angle_compensate_multiple);
-              if ((angle_value - angle_compensate_offset) < 0)
-                angle_compensate_offset = angle_value;
-
-              for (j = 0; j < angle_compensate_multiple; j++)
-              {
-                angle_compensate_nodes[angle_value - angle_compensate_offset + j] = nodes[i];
-              }
-            }
-          }
-          publishScan (angle_compensate_nodes, angle_compensate_nodes_count,
-                       start_scan_time, scan_duration, angle_min, angle_max);
-        }
-
-
-        /*
-        float angle_min = DEG2RAD(0.0f);
-        float angle_max = DEG2RAD(359.0f);
-        
-        const int angle_compensate_nodes_count = 360;
-        const int angle_compensate_multiple = 1;
-        int angle_compensate_offset = 0;
-        SelidarMeasurementNode angle_compensate_nodes[angle_compensate_nodes_count];
-        memset (angle_compensate_nodes, 0, angle_compensate_nodes_count * sizeof(SelidarMeasurementNode));
-
-        int i, j;
-        for (i = 0; i < count; i++)
-        {
-          if (nodes[i].distance_scale_1000 != 0)
-          {
-            float angle = (float) (nodes[i].angle_scale_100) / 100.0f;
-            int angle_value = (int) (angle * angle_compensate_multiple);
-            if ((angle_value - angle_compensate_offset) < 0)
-              angle_compensate_offset = angle_value;
-
-            for (j = 0; j < angle_compensate_multiple; j++)
-            {
-              angle_compensate_nodes[angle_value - angle_compensate_offset + j] = nodes[i];
-            }
-          }
-        }
-        publishScan (angle_compensate_nodes, angle_compensate_nodes_count,
-                     start_scan_time, scan_duration, angle_min, angle_max);
-        */
-
-
-        
+    	  ldn_tmp = ldn+i;
+    	  if(ldn_tmp->angle==5768)
+    	  {
+    		  scan_duration=(NS_NaviCommon::Time::now()-start_scan_time).toSec()*0.001;
+    		  publishScanData(drv.ldConst,
+    				  start_scan_time,
+					  scan_duration,
+					  ldn_array,
+					  5760,
+					  align_number);
+    		  memset((void *)ldn_array, 0, 5760*sizeof(LaserDataNode));
+    		  last_anl = -1;
+    		  start_scan_time = NS_NaviCommon::Time::now();
+    		  count = 0;
+    	  }
+    	  else
+    	  {
+//    		  printf("count=%d\r\n", count);
+//    		  count++;
+    		  if(ldn_tmp->angle>last_anl)
+    		  {
+    			  (ldn_array+ldn_tmp->angle)->angle=ldn_tmp->angle;
+    			  (ldn_array+ldn_tmp->angle)->distance = ldn_tmp->distance;
+    			  last_anl = ldn_tmp->angle;
+    		  }
+    	  }
       }
     }
+
   }
   
   void
@@ -388,56 +199,12 @@ namespace NS_Selidar
           "cannot bind to the specified serial port %s.", serial_port.c_str ());
     }
 
-#ifdef DUPLEX_MODE
-    // reset lidar
-    drv.reset ();
-    NS_NaviCommon::delay (5000);
-
-    // check health...
-    if (!checkSelidarHealth (&drv))
-    {
-      return;
-    }
-
-    NS_NaviCommon::delay (100);
-
-    // get device info...
-    if (!checkSelidarInfo (&drv))
-    {
-      return;
-    }
-    NS_NaviCommon::delay (100);
-
-    service->advertise (
-        NS_NaviCommon::SERVICE_TYPE_STOP_SCAN,
-        boost::bind (&SelidarApplication::stopScanService, this, _1, _2));
-    service->advertise (
-        NS_NaviCommon::SERVICE_TYPE_START_SCAN,
-        boost::bind (&SelidarApplication::startScanService, this, _1, _2));
-#endif
-
     NS_NaviCommon::delay (100);
 
     running = true;
     
     scan_thread = boost::thread (
         boost::bind (&SelidarApplication::scanLoop, this));
-
-    int wait_times = 0;
-    scan_count_lock.lock ();
-    while (wait_times++ <= scan_timeout && scan_count == 0)
-    {
-      got_first_scan_cond.timed_wait (scan_count_lock,
-                                      (boost::get_system_time () + boost::posix_time::seconds (1)));
-    }
-    scan_count_lock.unlock ();
-
-    if (scan_count == 0)
-    {
-      console.error ("Can't got first scan from LIDAR.");
-      running = false;
-    }
-
   }
   
   void
@@ -445,14 +212,10 @@ namespace NS_Selidar
   {
     console.message ("selidar is quitting!");
     
-#ifdef DUPLEX_MODE
-    drv.stop ();
-#endif
-    
     running = false;
     
     scan_thread.join ();
-    
+
     drv.disconnect ();
   }
 
