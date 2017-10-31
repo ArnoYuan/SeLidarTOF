@@ -109,6 +109,25 @@
 							</tool>
 						</toolChain>
 					</folderInfo>
+					<folderInfo id="cdt.managedbuild.config.gnu.cross.exe.release.1615461687.292747344" name="/" resourcePath="Build">
+						<toolChain id="cdt.managedbuild.toolchain.gnu.cross.exe.release.455553735" name="Cross GCC" superClass="cdt.managedbuild.toolchain.gnu.cross.exe.release" unusedChildren="">
+							<targetPlatform archList="all" binaryParser="org.eclipse.cdt.core.ELF" id="cdt.managedbuild.targetPlatform.gnu.cross" isAbstract="false" osList="all" superClass="cdt.managedbuild.targetPlatform.gnu.cross"/>
+							<tool id="cdt.managedbuild.tool.gnu.cross.c.compiler.930118942" name="Cross GCC Compiler" superClass="cdt.managedbuild.tool.gnu.cross.c.compiler.2139798585">
+								<option id="gnu.c.compiler.option.dialect.std.16896828" name="Language standard" superClass="gnu.c.compiler.option.dialect.std" useByScannerDiscovery="true" value="gnu.c.compiler.dialect.default" valueType="enumerated"/>
+								<inputType id="cdt.managedbuild.tool.gnu.c.compiler.input.1336544047" superClass="cdt.managedbuild.tool.gnu.c.compiler.input"/>
+							</tool>
+							<tool id="cdt.managedbuild.tool.gnu.cross.cpp.compiler.1053586892" name="Cross G++ Compiler" superClass="cdt.managedbuild.tool.gnu.cross.cpp.compiler.149013150">
+								<option id="gnu.cpp.compiler.option.dialect.std.1737686821" name="Language standard" superClass="gnu.cpp.compiler.option.dialect.std" useByScannerDiscovery="true" value="gnu.cpp.compiler.dialect.default" valueType="enumerated"/>
+								<inputType id="cdt.managedbuild.tool.gnu.cpp.compiler.input.712364582" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.input"/>
+							</tool>
+							<tool id="cdt.managedbuild.tool.gnu.cross.c.linker.85554812" name="Cross GCC Linker" superClass="cdt.managedbuild.tool.gnu.cross.c.linker.1627802758"/>
+							<tool id="cdt.managedbuild.tool.gnu.cross.cpp.linker.1881028286" name="Cross G++ Linker" superClass="cdt.managedbuild.tool.gnu.cross.cpp.linker.535946332"/>
+							<tool id="cdt.managedbuild.tool.gnu.cross.archiver.1256291066" name="Cross GCC Archiver" superClass="cdt.managedbuild.tool.gnu.cross.archiver.931094513"/>
+							<tool id="cdt.managedbuild.tool.gnu.cross.assembler.1476572906" name="Cross GCC Assembler" superClass="cdt.managedbuild.tool.gnu.cross.assembler.1964027258">
+								<inputType id="cdt.managedbuild.tool.gnu.assembler.input.381283482" superClass="cdt.managedbuild.tool.gnu.assembler.input"/>
+							</tool>
+						</toolChain>
+					</folderInfo>
 					<sourceEntries>
 						<entry excluding="Source" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
 						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Source"/>
@@ -121,22 +140,30 @@
 	<storageModule moduleId="cdtBuildSystem" version="4.0.0">
 		<project id="SeLidar.cdt.managedbuild.target.gnu.cross.exe.524368548" name="Executable" projectType="cdt.managedbuild.target.gnu.cross.exe"/>
 	</storageModule>
+	<storageModule moduleId="org.eclipse.cdt.core.LanguageSettingsProviders"/>
+	<storageModule moduleId="refreshScope" versionNumber="2">
+		<configuration configurationName="Debug">
+			<resource resourceType="PROJECT" workspacePath="/SeLidarTOF"/>
+		</configuration>
+		<configuration configurationName="Release">
+			<resource resourceType="PROJECT" workspacePath="/SeLidarTOF"/>
+		</configuration>
+	</storageModule>
+	<storageModule moduleId="org.eclipse.cdt.make.core.buildtargets"/>
+	<storageModule moduleId="org.eclipse.cdt.internal.ui.text.commentOwnerProjectMappings"/>
 	<storageModule moduleId="scannerConfiguration">
 		<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
+		<scannerConfigBuildInfo instanceId="cdt.managedbuild.config.gnu.cross.exe.release.1615461687;cdt.managedbuild.config.gnu.cross.exe.release.1615461687.;cdt.managedbuild.tool.gnu.cross.c.compiler.2139798585;cdt.managedbuild.tool.gnu.c.compiler.input.432971053">
+			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
+		</scannerConfigBuildInfo>
+		<scannerConfigBuildInfo instanceId="cdt.managedbuild.config.gnu.cross.exe.release.1615461687;cdt.managedbuild.config.gnu.cross.exe.release.1615461687.;cdt.managedbuild.tool.gnu.cross.cpp.compiler.149013150;cdt.managedbuild.tool.gnu.cpp.compiler.input.887984522">
+			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
+		</scannerConfigBuildInfo>
 		<scannerConfigBuildInfo instanceId="cdt.managedbuild.config.gnu.cross.exe.debug.888442388;cdt.managedbuild.config.gnu.cross.exe.debug.888442388.;cdt.managedbuild.tool.gnu.cross.cpp.compiler.308875031;cdt.managedbuild.tool.gnu.cpp.compiler.input.1308566294">
 			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
 		</scannerConfigBuildInfo>
 		<scannerConfigBuildInfo instanceId="cdt.managedbuild.config.gnu.cross.exe.debug.888442388;cdt.managedbuild.config.gnu.cross.exe.debug.888442388.;cdt.managedbuild.tool.gnu.cross.c.compiler.1404417865;cdt.managedbuild.tool.gnu.c.compiler.input.795248708">
 			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
 		</scannerConfigBuildInfo>
-		<scannerConfigBuildInfo instanceId="cdt.managedbuild.config.gnu.cross.exe.release.1615461687;cdt.managedbuild.config.gnu.cross.exe.release.1615461687.;cdt.managedbuild.tool.gnu.cross.cpp.compiler.149013150;cdt.managedbuild.tool.gnu.cpp.compiler.input.887984522">
-			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
-		</scannerConfigBuildInfo>
-		<scannerConfigBuildInfo instanceId="cdt.managedbuild.config.gnu.cross.exe.release.1615461687;cdt.managedbuild.config.gnu.cross.exe.release.1615461687.;cdt.managedbuild.tool.gnu.cross.c.compiler.2139798585;cdt.managedbuild.tool.gnu.c.compiler.input.432971053">
-			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
-		</scannerConfigBuildInfo>
 	</storageModule>
-	<storageModule moduleId="org.eclipse.cdt.core.LanguageSettingsProviders"/>
-	<storageModule moduleId="refreshScope"/>
-	<storageModule moduleId="org.eclipse.cdt.make.core.buildtargets"/>
 </cproject>
